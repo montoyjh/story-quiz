@@ -1,0 +1,17 @@
+{
+  "name": "wanikani-story-quiz",
+  "version": "1.0.0",
+  "description": "WaniKani story quiz app with Gemini AI",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.2.1"
+  }
+}

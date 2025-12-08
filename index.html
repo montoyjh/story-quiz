@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WaniKani Story Quiz</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>📚 WaniKani Story Quiz</h1>
+            <p>Learn Japanese through contextual stories and quizzes</p>
+        </header>
+
+        <!-- API Setup Section -->
+        <div class="api-setup" id="apiSetup">
+            <div class="setup-card">
+                <h2>API Configuration</h2>
+                <p>Enter your API keys to get started:</p>
+                
+                <div class="input-group">
+                    <label for="wanikaniToken">WaniKani API Token</label>
+                    <input type="password" id="wanikaniToken" placeholder="Your WaniKani API token">
+                    <a href="https://www.wanikani.com/settings/personal_access_tokens" target="_blank" class="help-link">
+                        Get your API token
+                    </a>
+                    <div class="button-inline">
+                        <button id="validateWanikani" class="btn btn-secondary">Validate WaniKani</button>
+                    </div>
+                    <div class="status-message" id="wanikaniStatus"></div>
+                </div>
+
+                <div class="input-group">
+                    <label for="geminiKey">Gemini API Key</label>
+                    <input type="password" id="geminiKey" placeholder="Your Gemini API key">
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="help-link">
+                        Get your API key
+                    </a>
+                    <div class="button-inline">
+                        <button id="validateGemini" class="btn btn-secondary">Validate Gemini</button>
+                    </div>
+                    <div class="status-message" id="geminiStatus"></div>
+                </div>
+
+                <div class="button-group">
+                    <button id="saveKeys" class="btn btn-primary">Save & Validate</button>
+                    <button id="clearKeys" class="btn btn-secondary">Clear Keys</button>
+                </div>
+
+                <div class="status-message" id="statusMessage"></div>
+            </div>
+        </div>
+
+        <!-- Main Content (hidden initially) -->
+        <div class="main-content" id="mainContent" style="display: none;">
+            <!-- Story Section -->
+            <div class="story-section" id="storySection">
+                <h2>Story</h2>
+                <div class="story-container">
+                    <div class="story-text" id="storyText"></div>
+                </div>
+                <div class="story-controls">
+                    <button id="generateQuiz" class="btn btn-primary">Generate New Quiz</button>
+                    <button id="startQuiz" class="btn btn-primary" style="display: none;">Start Quiz</button>
+                </div>
+            </div>
+
+            <!-- Quiz Section -->
+            <div class="quiz-section" id="quizSection" style="display: none;">
+                <div class="quiz-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <span class="progress-text" id="progressText">Question 1 of 5</span>
+                </div>
+
+                <div class="quiz-card">
+                    <div class="quiz-item-type" id="quizItemType"></div>
+                    <div class="quiz-item-character" id="quizItemCharacter"></div>
+                    <div class="quiz-question" id="quizQuestion"></div>
+
+                    <div class="answer-section">
+                        <input type="text" id="answerInput" placeholder="Enter your answer..." class="answer-input">
+                        <button id="submitAnswer" class="btn btn-primary">Submit</button>
+                    </div>
+
+                    <div class="result-section" id="resultSection" style="display: none;">
+                        <div class="result-message" id="resultMessage"></div>
+                        <button id="nextQuestion" class="btn btn-primary">Next Question</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quiz Complete Section -->
+            <div class="quiz-complete" id="quizComplete" style="display: none;">
+                <h2>Quiz Complete! 🎉</h2>
+                <div class="score-display" id="scoreDisplay"></div>
+                <button id="newQuiz" class="btn btn-primary">Generate New Quiz</button>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div class="loading" id="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p id="loadingText">Loading...</p>
+        </div>
+
+        <!-- Error Message -->
+        <div class="error" id="error" style="display: none;">
+            <div class="error-message" id="errorMessage"></div>
+            <button id="retryButton" class="btn btn-primary">Retry</button>
+        </div>
+    </div>
+
+    <script type="module" src="/main.js"></script>
+</body>
+</html>
+
