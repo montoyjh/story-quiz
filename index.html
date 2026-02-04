@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WaniKani Story Quiz</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -10,7 +10,7 @@
 <body>
     <div class="container">
         <header class="header">
-            <h1>📚 WaniKani Story Quiz</h1>
+            <h1>WaniKani Story Quiz</h1>
             <p>Learn Japanese through contextual stories and quizzes</p>
         </header>
 
@@ -19,7 +19,7 @@
             <div class="setup-card">
                 <h2>API Configuration</h2>
                 <p>Enter your API keys to get started:</p>
-                
+
                 <div class="input-group">
                     <label for="wanikaniToken">WaniKani API Token</label>
                     <input type="password" id="wanikaniToken" placeholder="Your WaniKani API token">
@@ -55,11 +55,27 @@
 
         <!-- Main Content (hidden initially) -->
         <div class="main-content" id="mainContent" style="display: none;">
+            <!-- Item Cards Section -->
+            <div class="item-cards-section" id="itemCardsSection" style="display: none;">
+                <h2>Quiz Items</h2>
+                <div class="item-cards-container" id="itemCardsContainer"></div>
+            </div>
+
             <!-- Story Section -->
             <div class="story-section" id="storySection">
                 <h2>Story</h2>
                 <div class="story-container">
                     <div class="story-text" id="storyText"></div>
+                </div>
+                <div class="quiz-config" id="quizConfig">
+                    <div class="config-row">
+                        <label for="vocabCount">Vocabulary:</label>
+                        <input type="number" id="vocabCount" min="0" max="10" value="3">
+                    </div>
+                    <div class="config-row">
+                        <label for="kanjiCount">Kanji:</label>
+                        <input type="number" id="kanjiCount" min="0" max="10" value="2">
+                    </div>
                 </div>
                 <div class="story-controls">
                     <button id="generateQuiz" class="btn btn-primary">Generate New Quiz</button>
@@ -76,28 +92,51 @@
                     <span class="progress-text" id="progressText">Question 1 of 5</span>
                 </div>
 
-                <div class="quiz-card">
-                    <div class="quiz-item-type" id="quizItemType"></div>
+                <div class="quiz-card" id="quizCard">
+                    <div class="quiz-item-badge" id="quizItemBadge">
+                        <span class="quiz-item-type" id="quizItemType"></span>
+                    </div>
                     <div class="quiz-item-character" id="quizItemCharacter"></div>
+                    <div class="quiz-question-type" id="quizQuestionType"></div>
                     <div class="quiz-question" id="quizQuestion"></div>
 
                     <div class="answer-section">
-                        <input type="text" id="answerInput" placeholder="Enter your answer..." class="answer-input">
+                        <input type="text" id="answerInput" placeholder="Enter your answer..." class="answer-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
                         <button id="submitAnswer" class="btn btn-primary">Submit</button>
                     </div>
 
                     <div class="result-section" id="resultSection" style="display: none;">
+                        <div class="result-icon" id="resultIcon"></div>
                         <div class="result-message" id="resultMessage"></div>
-                        <button id="nextQuestion" class="btn btn-primary">Next Question</button>
+                        <div class="accepted-answers" id="acceptedAnswers" style="display: none;"></div>
+                        <div class="result-buttons">
+                            <button id="undoAnswer" class="btn btn-secondary" style="display: none;">Undo</button>
+                            <button id="nextQuestion" class="btn btn-primary">Next Question</button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Quiz Complete Section -->
             <div class="quiz-complete" id="quizComplete" style="display: none;">
-                <h2>Quiz Complete! 🎉</h2>
+                <h2>Quiz Complete!</h2>
                 <div class="score-display" id="scoreDisplay"></div>
-                <button id="newQuiz" class="btn btn-primary">Generate New Quiz</button>
+
+                <!-- Review Summary -->
+                <div class="review-summary" id="reviewSummary">
+                    <h3>Review Summary</h3>
+                    <div class="review-items-list" id="reviewItemsList"></div>
+                </div>
+
+                <!-- Submission Controls -->
+                <div class="submission-controls" id="submissionControls">
+                    <button id="submitToWanikani" class="btn btn-wanikani">Submit to WaniKani</button>
+                    <button id="discardReviews" class="btn btn-secondary">Discard (Don't Submit)</button>
+                </div>
+
+                <div class="submission-status" id="submissionStatus" style="display: none;"></div>
+
+                <button id="newQuiz" class="btn btn-primary" style="margin-top: 20px;">Generate New Quiz</button>
             </div>
         </div>
 
@@ -117,4 +156,3 @@
     <script type="module" src="/main.js"></script>
 </body>
 </html>
-

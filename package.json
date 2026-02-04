@@ -12,6 +12,7 @@
     "vite": "^5.0.0"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.2.1"
+    "@google/generative-ai": "^0.2.1",
+    "wanakana": "^5.3.1"
   }
 }
