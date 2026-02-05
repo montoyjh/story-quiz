@@ -350,6 +350,9 @@ class StoryQuizApp {
             this.elements.storySection.classList.remove('quiz-active');
             this.elements.quizSection.style.display = 'none';
             this.elements.quizComplete.style.display = 'none';
+            // Show quiz config and controls again
+            this.elements.quizConfig.style.display = 'flex';
+            this.elements.generateQuiz.style.display = 'inline-block';
             this.elements.startQuiz.style.display = 'block';
         } catch (error) {
             console.error('Error generating quiz:', error);
@@ -608,6 +611,10 @@ class StoryQuizApp {
         this.elements.storySection.classList.add('quiz-active');
         this.elements.quizSection.style.display = 'block';
         this.elements.quizComplete.style.display = 'none';
+        // Hide quiz config and controls during quiz (story stays visible)
+        this.elements.quizConfig.style.display = 'none';
+        this.elements.generateQuiz.style.display = 'none';
+        this.elements.startQuiz.style.display = 'none';
         this.displayQuestion(0);
     }
 
@@ -757,10 +764,12 @@ class StoryQuizApp {
                 // Once marked incorrect, it stays incorrect for SRS purposes
                 if (reviewResult.meaning === null) {
                     // First attempt for this question
-                    reviewResult.meaning = isCorrect;
-                    if (!isCorrect) {
-                        reviewResult.meaningIncorrect++;
+                    if (isCorrect) {
+                        // Commit correct answers immediately
+                        reviewResult.meaning = true;
                     }
+                    // Don't commit incorrect answers yet - wait until user advances
+                    // This allows undo for typos on first attempt
                 } else if (!isCorrect && reviewResult.meaning === false) {
                     // Additional incorrect attempt (recycled question)
                     reviewResult.meaningIncorrect++;
@@ -768,10 +777,10 @@ class StoryQuizApp {
                 // If already marked (true or false), don't change it
             } else {
                 if (reviewResult.reading === null) {
-                    reviewResult.reading = isCorrect;
-                    if (!isCorrect) {
-                        reviewResult.readingIncorrect++;
+                    if (isCorrect) {
+                        reviewResult.reading = true;
                     }
+                    // Don't commit incorrect answers yet - wait until user advances
                 } else if (!isCorrect && reviewResult.reading === false) {
                     reviewResult.readingIncorrect++;
                 }
@@ -832,11 +841,6 @@ class StoryQuizApp {
             setTimeout(() => {
                 this.elements.quizCard.classList.remove('pulse');
             }, 400);
-
-            // Auto-hide undo after 5 seconds
-            this.undoTimeout = setTimeout(() => {
-                this.elements.undoAnswer.style.display = 'none';
-            }, 5000);
         } else {
             this.elements.resultIcon.textContent = '✗';
             this.elements.resultIcon.style.color = 'var(--wk-incorrect)';
@@ -847,8 +851,12 @@ class StoryQuizApp {
             this.elements.acceptedAnswers.innerHTML = `<strong>Accepted answers:</strong> ${correctAnswerText}`;
             this.elements.acceptedAnswers.style.display = 'block';
 
-            // Hide undo for incorrect answers
-            this.elements.undoAnswer.style.display = 'none';
+            // Show undo for first incorrect attempts (allows fixing typos)
+            if (this.lastAnswerResult && this.lastAnswerResult.wasFirstAttempt) {
+                this.elements.undoAnswer.style.display = 'inline-block';
+            } else {
+                this.elements.undoAnswer.style.display = 'none';
+            }
 
             // Add shake animation
             this.elements.quizCard.classList.add('shake');
@@ -875,11 +883,11 @@ class StoryQuizApp {
         const reviewResult = this.reviewResults.get(subjectId);
         if (reviewResult) {
             if (questionType === 'meaning') {
-                // If this was the first attempt, reset to null
                 if (wasFirstAttempt) {
-                    reviewResult.meaning = null;
-                    if (!isCorrect) {
-                        reviewResult.meaningIncorrect = Math.max(0, reviewResult.meaningIncorrect - 1);
+                    // If this was a first correct attempt, reset to null
+                    // First incorrect attempts were never committed, so nothing to revert
+                    if (isCorrect) {
+                        reviewResult.meaning = null;
                     }
                 } else if (!isCorrect) {
                     // This was a re-attempt, just decrement incorrect count
@@ -887,9 +895,8 @@ class StoryQuizApp {
                 }
             } else {
                 if (wasFirstAttempt) {
-                    reviewResult.reading = null;
-                    if (!isCorrect) {
-                        reviewResult.readingIncorrect = Math.max(0, reviewResult.readingIncorrect - 1);
+                    if (isCorrect) {
+                        reviewResult.reading = null;
                     }
                 } else if (!isCorrect) {
                     reviewResult.readingIncorrect = Math.max(0, reviewResult.readingIncorrect - 1);
@@ -915,6 +922,21 @@ class StoryQuizApp {
     nextQuestion() {
         const currentQuestion = this.quizItems[this.currentQuizIndex];
         const questionKey = currentQuestion.key;
+
+        // Commit pending incorrect status before advancing
+        // This happens when user advances after an incorrect first attempt without undoing
+        if (this.lastAnswerResult && !this.lastAnswerResult.isCorrect && this.lastAnswerResult.wasFirstAttempt) {
+            const reviewResult = this.reviewResults.get(this.lastAnswerResult.subjectId);
+            if (reviewResult) {
+                if (this.lastAnswerResult.questionType === 'meaning' && reviewResult.meaning === null) {
+                    reviewResult.meaning = false;
+                    reviewResult.meaningIncorrect++;
+                } else if (this.lastAnswerResult.questionType === 'reading' && reviewResult.reading === null) {
+                    reviewResult.reading = false;
+                    reviewResult.readingIncorrect++;
+                }
+            }
+        }
 
         // If this question hasn't been answered correctly yet, recycle it
         if (!this.correctlyAnswered.has(questionKey)) {
