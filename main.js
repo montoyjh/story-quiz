@@ -490,7 +490,10 @@ class StoryQuizApp {
 
                 prompt += '\nThe paragraph should be coherent and natural. Include all items naturally in context.\n';
                 prompt += 'This is for Japanese language learning, so use simple vocabulary and grammar appropriate for beginners.\n';
-                prompt += 'Return only the Japanese paragraph, no additional text or explanations.';
+                prompt += 'IMPORTANT: Wrap each target word (including any conjugated forms) with markers:\n';
+                prompt += '- For vocabulary words: [[v:word]] (e.g., if 食べる appears as 食べた, write [[v:食べた]])\n';
+                prompt += '- For kanji: [[k:kanji]]\n';
+                prompt += 'Return only the Japanese paragraph with these markers, no additional text or explanations.';
 
                 const result = await model.generateContent(prompt);
                 const response = await result.response;
@@ -549,52 +552,23 @@ class StoryQuizApp {
     displayStory(story, items) {
         let highlightedStory = story;
 
-        // Sort items by length (longest first) to handle overlapping matches
-        const sortedItems = [...items].sort((a, b) => {
-            const aChars = (a.data.characters || a.data.character || a.data.slug || '').length;
-            const bChars = (b.data.characters || b.data.character || b.data.slug || '').length;
-            return bChars - aChars;
-        });
+        // Replace [[v:word]] markers with vocabulary highlighting
+        highlightedStory = highlightedStory.replace(
+            /\[\[v:([^\]]+)\]\]/g,
+            '<span class="highlight-vocab">$1</span>'
+        );
 
-        // Highlight each item with tooltip
-        sortedItems.forEach(item => {
-            const characters = item.data.characters || item.data.character || item.data.slug;
-            const type = item.object;
-            const srsStage = this.srsStageMap.get(item.id) || 1;
+        // Replace [[k:word]] markers with kanji highlighting
+        highlightedStory = highlightedStory.replace(
+            /\[\[k:([^\]]+)\]\]/g,
+            '<span class="highlight-kanji">$1</span>'
+        );
 
-            // Only show meaning/reading hints for Apprentice items (stage 1-4)
-            // Guru and above (stage 5+) should not show hints
-            const showHints = srsStage < 5;
-
-            const meanings = item.data.meanings || [];
-            const primaryMeaning = meanings.find(m => m.primary)?.meaning || meanings[0]?.meaning || '';
-            const readings = item.data.readings || [];
-            const primaryReading = readings.find(r => r.primary)?.reading || readings[0]?.reading || '';
-
-            let colorClass = '';
-            if (type === 'vocabulary') {
-                colorClass = 'highlight-vocab';
-            } else if (type === 'kanji') {
-                colorClass = 'highlight-kanji';
-            } else if (type === 'radical') {
-                colorClass = 'highlight-radical';
-            }
-
-            const escapedChars = characters.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const regex = new RegExp(escapedChars, 'g');
-
-            if (showHints) {
-                const tooltipText = `${primaryMeaning}${primaryReading ? ' ・ ' + primaryReading : ''}`;
-                highlightedStory = highlightedStory.replace(regex, (match) => {
-                    return `<span class="${colorClass}"><span class="story-tooltip">${tooltipText}</span>${match}</span>`;
-                });
-            } else {
-                // No tooltip for Guru+ items
-                highlightedStory = highlightedStory.replace(regex, (match) => {
-                    return `<span class="${colorClass}">${match}</span>`;
-                });
-            }
-        });
+        // Replace [[r:word]] markers with radical highlighting (if used)
+        highlightedStory = highlightedStory.replace(
+            /\[\[r:([^\]]+)\]\]/g,
+            '<span class="highlight-radical">$1</span>'
+        );
 
         this.elements.storyText.innerHTML = highlightedStory;
     }
