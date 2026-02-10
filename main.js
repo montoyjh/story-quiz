@@ -485,7 +485,12 @@ class StoryQuizApp {
                     const meanings = item.data.meanings || [];
                     const primaryMeaning = meanings.find(m => m.primary)?.meaning || meanings[0]?.meaning || 'unknown';
 
-                    prompt += `- ${characters} (${primaryMeaning})\n`;
+                    // Check if this is a suffix/prefix vocab with placeholder
+                    if (characters.includes('〜') || characters.includes('~')) {
+                        prompt += `- ${characters} (${primaryMeaning}) - NOTE: 〜 is a placeholder; use this suffix/prefix naturally attached to another word\n`;
+                    } else {
+                        prompt += `- ${characters} (${primaryMeaning})\n`;
+                    }
                 });
 
                 prompt += '\nThe paragraph should be coherent and natural. Include all items naturally in context.\n';
