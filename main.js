@@ -395,7 +395,7 @@ class StoryQuizApp {
         };
     }
 
-    selectQuizItems(items, vocabCount = 3, kanjiCount = 2) {
+    selectQuizItems(items, vocabCount = 5, kanjiCount = 0) {
         const vocabulary = items.filter(item => item.object === 'vocabulary');
         const kanji = items.filter(item => item.object === 'kanji');
 
@@ -495,10 +495,7 @@ class StoryQuizApp {
 
                 prompt += '\nThe paragraph should be coherent and natural. Include all items naturally in context.\n';
                 prompt += 'This is for Japanese language learning, so use simple vocabulary and grammar appropriate for beginners.\n';
-                prompt += 'IMPORTANT: Wrap each target word (including any conjugated forms) with markers:\n';
-                prompt += '- For vocabulary words: [[v:word]] (e.g., if 食べる appears as 食べた, write [[v:食べた]])\n';
-                prompt += '- For kanji: [[k:kanji]]\n';
-                prompt += 'Return only the Japanese paragraph with these markers, no additional text or explanations.';
+                prompt += 'Return only the Japanese paragraph, no additional text or explanations.';
 
                 const result = await model.generateContent(prompt);
                 const response = await result.response;
@@ -554,27 +551,455 @@ class StoryQuizApp {
         });
     }
 
+    // Generate possible verb conjugations for a given word
+    getVerbForms(word) {
+        const forms = [word];
+
+        // Skip if word contains placeholder markers
+        if (word.includes('〜') || word.includes('~')) {
+            // For suffix/prefix, just use the base without the placeholder
+            const baseWord = word.replace(/[〜~]/g, '');
+            if (baseWord) forms.push(baseWord);
+            return forms;
+        }
+
+        // Irregular verb - 行く (iku - to go)
+        if (word === '行く') {
+            forms.push('行って');     // te-form (irregular!)
+            forms.push('行った');     // past
+            forms.push('行かない');   // negative
+            forms.push('行かなかった'); // past negative
+            forms.push('行きます');   // polite
+            forms.push('行きました'); // polite past
+            forms.push('行きません'); // polite negative
+            forms.push('行ける');     // potential
+            forms.push('行こう');     // volitional
+            forms.push('行け');       // imperative
+            forms.push('行けば');     // conditional
+            forms.push('行ったり');   // tari-form
+            forms.push('行っている'); // progressive
+            forms.push('行ってる');   // casual progressive
+            forms.push('行っていた'); // past progressive
+            forms.push('行ってた');   // casual past progressive
+        }
+
+        // Common verb endings and their conjugations
+        // る-verbs (ichidan) - generate these forms
+        if (word.endsWith('る')) {
+            const stem = word.slice(0, -1);
+            // Ichidan forms (for verbs like 食べる, 見る, 起きる)
+            forms.push(stem + 'て');      // te-form
+            forms.push(stem + 'た');      // past
+            forms.push(stem + 'ない');    // negative
+            forms.push(stem + 'なかった'); // past negative
+            forms.push(stem + 'ます');    // polite
+            forms.push(stem + 'ました');  // polite past
+            forms.push(stem + 'ません');  // polite negative
+            forms.push(stem + 'られる');  // potential/passive
+            forms.push(stem + 'よう');    // volitional
+            forms.push(stem + 'ろ');      // imperative
+            forms.push(stem + 'れば');    // conditional
+            forms.push(stem + 'たり');    // tari-form
+            forms.push(stem + 'ている');  // progressive
+            forms.push(stem + 'てる');    // casual progressive
+            forms.push(stem + 'ていた');  // past progressive
+            forms.push(stem + 'てた');    // casual past progressive
+
+            // Also generate godan-る forms (for verbs like 帰る, 走る, 切る, 知る)
+            // These verbs end in る but conjugate like う-verbs
+            forms.push(stem + 'って');    // te-form (godan)
+            forms.push(stem + 'った');    // past (godan)
+            forms.push(stem + 'らない');  // negative (godan)
+            forms.push(stem + 'らなかった'); // past negative (godan)
+            forms.push(stem + 'ります');  // polite (godan)
+            forms.push(stem + 'りました'); // polite past (godan)
+            forms.push(stem + 'りません'); // polite negative (godan)
+            forms.push(stem + 'れる');    // potential (godan)
+            forms.push(stem + 'ろう');    // volitional (godan)
+            forms.push(stem + 'れ');      // imperative (godan)
+            forms.push(stem + 'ったり');  // tari-form (godan)
+            forms.push(stem + 'っている'); // progressive (godan)
+            forms.push(stem + 'ってる');  // casual progressive (godan)
+            forms.push(stem + 'っていた'); // past progressive (godan)
+            forms.push(stem + 'ってた');  // casual past progressive (godan)
+        }
+
+        // う-verbs (godan) - various endings
+        // う ending
+        if (word.endsWith('う')) {
+            const stem = word.slice(0, -1);
+            forms.push(stem + 'って');    // te-form
+            forms.push(stem + 'った');    // past
+            forms.push(stem + 'わない');  // negative
+            forms.push(stem + 'わなかった'); // past negative
+            forms.push(stem + 'います');  // polite
+            forms.push(stem + 'いました'); // polite past
+            forms.push(stem + 'いません'); // polite negative
+            forms.push(stem + 'える');    // potential
+            forms.push(stem + 'おう');    // volitional
+            forms.push(stem + 'え');      // imperative
+            forms.push(stem + 'えば');    // conditional
+            forms.push(stem + 'ったり');  // tari-form
+            forms.push(stem + 'っている'); // progressive
+            forms.push(stem + 'ってる');  // casual progressive
+        }
+
+        // く ending
+        if (word.endsWith('く')) {
+            const stem = word.slice(0, -1);
+            forms.push(stem + 'いて');    // te-form
+            forms.push(stem + 'いた');    // past
+            forms.push(stem + 'かない');  // negative
+            forms.push(stem + 'かなかった'); // past negative
+            forms.push(stem + 'きます');  // polite
+            forms.push(stem + 'きました'); // polite past
+            forms.push(stem + 'きません'); // polite negative
+            forms.push(stem + 'ける');    // potential
+            forms.push(stem + 'こう');    // volitional
+            forms.push(stem + 'け');      // imperative
+            forms.push(stem + 'けば');    // conditional
+            forms.push(stem + 'いたり');  // tari-form
+            forms.push(stem + 'いている'); // progressive
+            forms.push(stem + 'いてる');  // casual progressive
+        }
+
+        // ぐ ending
+        if (word.endsWith('ぐ')) {
+            const stem = word.slice(0, -1);
+            forms.push(stem + 'いで');    // te-form
+            forms.push(stem + 'いだ');    // past
+            forms.push(stem + 'がない');  // negative
+            forms.push(stem + 'がなかった'); // past negative
+            forms.push(stem + 'ぎます');  // polite
+            forms.push(stem + 'ぎました'); // polite past
+            forms.push(stem + 'ぎません'); // polite negative
+            forms.push(stem + 'げる');    // potential
+            forms.push(stem + 'ごう');    // volitional
+            forms.push(stem + 'げ');      // imperative
+            forms.push(stem + 'げば');    // conditional
+            forms.push(stem + 'いだり');  // tari-form
+            forms.push(stem + 'いでいる'); // progressive
+            forms.push(stem + 'いでる');  // casual progressive
+        }
+
+        // す ending
+        if (word.endsWith('す')) {
+            const stem = word.slice(0, -1);
+            forms.push(stem + 'して');    // te-form
+            forms.push(stem + 'した');    // past
+            forms.push(stem + 'さない');  // negative
+            forms.push(stem + 'さなかった'); // past negative
+            forms.push(stem + 'します');  // polite
+            forms.push(stem + 'しました'); // polite past
+            forms.push(stem + 'しません'); // polite negative
+            forms.push(stem + 'せる');    // potential
+            forms.push(stem + 'そう');    // volitional
+            forms.push(stem + 'せ');      // imperative
+            forms.push(stem + 'せば');    // conditional
+            forms.push(stem + 'したり');  // tari-form
+            forms.push(stem + 'している'); // progressive
+            forms.push(stem + 'してる');  // casual progressive
+        }
+
+        // つ ending
+        if (word.endsWith('つ')) {
+            const stem = word.slice(0, -1);
+            forms.push(stem + 'って');    // te-form
+            forms.push(stem + 'った');    // past
+            forms.push(stem + 'たない');  // negative
+            forms.push(stem + 'たなかった'); // past negative
+            forms.push(stem + 'ちます');  // polite
+            forms.push(stem + 'ちました'); // polite past
+            forms.push(stem + 'ちません'); // polite negative
+            forms.push(stem + 'てる');    // potential
+            forms.push(stem + 'とう');    // volitional
+            forms.push(stem + 'て');      // imperative
+            forms.push(stem + 'てば');    // conditional
+            forms.push(stem + 'ったり');  // tari-form
+            forms.push(stem + 'っている'); // progressive
+            forms.push(stem + 'ってる');  // casual progressive
+        }
+
+        // ぬ ending
+        if (word.endsWith('ぬ')) {
+            const stem = word.slice(0, -1);
+            forms.push(stem + 'んで');    // te-form
+            forms.push(stem + 'んだ');    // past
+            forms.push(stem + 'なない');  // negative
+            forms.push(stem + 'ななかった'); // past negative
+            forms.push(stem + 'にます');  // polite
+            forms.push(stem + 'にました'); // polite past
+            forms.push(stem + 'にません'); // polite negative
+            forms.push(stem + 'ねる');    // potential
+            forms.push(stem + 'のう');    // volitional
+            forms.push(stem + 'ね');      // imperative
+            forms.push(stem + 'ねば');    // conditional
+            forms.push(stem + 'んだり');  // tari-form
+            forms.push(stem + 'んでいる'); // progressive
+            forms.push(stem + 'んでる');  // casual progressive
+        }
+
+        // ぶ ending
+        if (word.endsWith('ぶ')) {
+            const stem = word.slice(0, -1);
+            forms.push(stem + 'んで');    // te-form
+            forms.push(stem + 'んだ');    // past
+            forms.push(stem + 'ばない');  // negative
+            forms.push(stem + 'ばなかった'); // past negative
+            forms.push(stem + 'びます');  // polite
+            forms.push(stem + 'びました'); // polite past
+            forms.push(stem + 'びません'); // polite negative
+            forms.push(stem + 'べる');    // potential
+            forms.push(stem + 'ぼう');    // volitional
+            forms.push(stem + 'べ');      // imperative
+            forms.push(stem + 'べば');    // conditional
+            forms.push(stem + 'んだり');  // tari-form
+            forms.push(stem + 'んでいる'); // progressive
+            forms.push(stem + 'んでる');  // casual progressive
+        }
+
+        // む ending
+        if (word.endsWith('む')) {
+            const stem = word.slice(0, -1);
+            forms.push(stem + 'んで');    // te-form
+            forms.push(stem + 'んだ');    // past
+            forms.push(stem + 'まない');  // negative
+            forms.push(stem + 'まなかった'); // past negative
+            forms.push(stem + 'みます');  // polite
+            forms.push(stem + 'みました'); // polite past
+            forms.push(stem + 'みません'); // polite negative
+            forms.push(stem + 'める');    // potential
+            forms.push(stem + 'もう');    // volitional
+            forms.push(stem + 'め');      // imperative
+            forms.push(stem + 'めば');    // conditional
+            forms.push(stem + 'んだり');  // tari-form
+            forms.push(stem + 'んでいる'); // progressive
+            forms.push(stem + 'んでる');  // casual progressive
+        }
+
+        // Irregular verbs - する
+        if (word === 'する' || word.endsWith('する')) {
+            const prefix = word.slice(0, -2);
+            forms.push(prefix + 'して');      // te-form
+            forms.push(prefix + 'した');      // past
+            forms.push(prefix + 'しない');    // negative
+            forms.push(prefix + 'しなかった'); // past negative
+            forms.push(prefix + 'します');    // polite
+            forms.push(prefix + 'しました');  // polite past
+            forms.push(prefix + 'しません');  // polite negative
+            forms.push(prefix + 'できる');    // potential
+            forms.push(prefix + 'しよう');    // volitional
+            forms.push(prefix + 'しろ');      // imperative
+            forms.push(prefix + 'すれば');    // conditional
+            forms.push(prefix + 'したり');    // tari-form
+            forms.push(prefix + 'している');  // progressive
+            forms.push(prefix + 'してる');    // casual progressive
+            forms.push(prefix + 'していた');  // past progressive
+            forms.push(prefix + 'してた');    // casual past progressive
+            forms.push(prefix + 'される');    // passive
+            forms.push(prefix + 'させる');    // causative
+        }
+
+        // Irregular verbs - くる/来る
+        if (word === 'くる' || word === '来る') {
+            forms.push('きて');      // te-form
+            forms.push('きた');      // past
+            forms.push('こない');    // negative
+            forms.push('こなかった'); // past negative
+            forms.push('きます');    // polite
+            forms.push('きました');  // polite past
+            forms.push('きません');  // polite negative
+            forms.push('こられる');  // potential
+            forms.push('こよう');    // volitional
+            forms.push('こい');      // imperative
+            forms.push('くれば');    // conditional
+            forms.push('きたり');    // tari-form
+            forms.push('きている');  // progressive
+            forms.push('きてる');    // casual progressive
+            forms.push('きていた');  // past progressive
+            forms.push('きてた');    // casual past progressive
+            forms.push('来て');      // kanji te-form
+            forms.push('来た');      // kanji past
+            forms.push('来ない');    // kanji negative
+            forms.push('来ます');    // kanji polite
+            forms.push('来ました');  // kanji polite past
+            forms.push('来ている');  // kanji progressive
+            forms.push('来てる');    // kanji casual progressive
+        }
+
+        // Irregular verb - ある (to exist, inanimate)
+        if (word === 'ある') {
+            forms.push('あって');    // te-form
+            forms.push('あった');    // past
+            forms.push('ない');      // negative (irregular!)
+            forms.push('なかった');  // past negative
+            forms.push('あります');  // polite
+            forms.push('ありました'); // polite past
+            forms.push('ありません'); // polite negative
+            forms.push('あれば');    // conditional
+            forms.push('あったり');  // tari-form
+        }
+
+        // Irregular verb - いる (to exist, animate)
+        if (word === 'いる') {
+            forms.push('いて');      // te-form
+            forms.push('いた');      // past
+            forms.push('いない');    // negative
+            forms.push('いなかった'); // past negative
+            forms.push('います');    // polite
+            forms.push('いました');  // polite past
+            forms.push('いません');  // polite negative
+            forms.push('いれば');    // conditional
+            forms.push('いたり');    // tari-form
+            forms.push('いられる');  // potential
+        }
+
+        // Irregular verb - いく (hiragana version of 行く)
+        if (word === 'いく') {
+            forms.push('いって');    // te-form (irregular!)
+            forms.push('いった');    // past
+            forms.push('いかない');  // negative
+            forms.push('いかなかった'); // past negative
+            forms.push('いきます');  // polite
+            forms.push('いきました'); // polite past
+            forms.push('いきません'); // polite negative
+            forms.push('いける');    // potential
+            forms.push('いこう');    // volitional
+            forms.push('いけ');      // imperative
+            forms.push('いけば');    // conditional
+            forms.push('いったり');  // tari-form
+            forms.push('いっている'); // progressive
+            forms.push('いってる');  // casual progressive
+        }
+
+        // い-adjective conjugations (includes しい adjectives)
+        // Exclude いい which is irregular
+        if (word.endsWith('い') && word !== 'いい' && word !== '良い') {
+            const stem = word.slice(0, -1);
+            forms.push(stem + 'くない');    // negative
+            forms.push(stem + 'かった');    // past
+            forms.push(stem + 'くなかった'); // past negative
+            forms.push(stem + 'くて');      // te-form
+            forms.push(stem + 'く');        // adverb form
+            forms.push(stem + 'ければ');    // conditional
+            forms.push(stem + 'さ');        // noun form
+            forms.push(stem + 'そう');      // seems like
+            forms.push(stem + 'すぎる');    // too much
+        }
+
+        // Irregular adjective - いい/良い (good)
+        if (word === 'いい' || word === '良い') {
+            forms.push('よくない');    // negative
+            forms.push('よかった');    // past
+            forms.push('よくなかった'); // past negative
+            forms.push('よくて');      // te-form
+            forms.push('よく');        // adverb form
+            forms.push('よければ');    // conditional
+            forms.push('よさ');        // noun form
+            forms.push('よさそう');    // seems good
+            forms.push('良くない');    // kanji negative
+            forms.push('良かった');    // kanji past
+            forms.push('良くて');      // kanji te-form
+            forms.push('良く');        // kanji adverb
+        }
+
+        // Add compound verb forms for te-form combinations
+        // These are common patterns that attach to the te-form
+        if (word.endsWith('る') || word.endsWith('う') || word.endsWith('く') ||
+            word.endsWith('ぐ') || word.endsWith('す') || word.endsWith('つ') ||
+            word.endsWith('ぬ') || word.endsWith('ぶ') || word.endsWith('む')) {
+            // Get all te-forms we've generated and add common compounds
+            const teForms = forms.filter(f => f.endsWith('て') || f.endsWith('で'));
+            teForms.forEach(teForm => {
+                forms.push(teForm + 'いる');    // progressive (formal)
+                forms.push(teForm + 'る');      // progressive (casual contraction)
+                forms.push(teForm + 'いた');    // past progressive
+                forms.push(teForm + 'た');      // past progressive (casual)
+                forms.push(teForm + 'みる');    // try doing
+                forms.push(teForm + 'みた');    // tried doing
+                forms.push(teForm + 'しまう');  // completely do
+                forms.push(teForm + 'しまった'); // completely did
+                forms.push(teForm + 'おく');    // do in advance
+                forms.push(teForm + 'おいた');  // did in advance
+                forms.push(teForm + 'くる');    // come to do
+                forms.push(teForm + 'きた');    // came to do
+                forms.push(teForm + 'いく');    // go on doing
+                forms.push(teForm + 'いった');  // went on doing
+                forms.push(teForm + 'から');    // after doing
+                forms.push(teForm + 'も');      // even if
+                forms.push(teForm + 'ください'); // please do
+                forms.push(teForm + 'くれる');  // do for me
+                forms.push(teForm + 'くれた');  // did for me
+                forms.push(teForm + 'もらう');  // have someone do
+                forms.push(teForm + 'もらった'); // had someone do
+                forms.push(teForm + 'あげる');  // do for someone
+                forms.push(teForm + 'あげた');  // did for someone
+            });
+        }
+
+        // Remove duplicates and empty strings
+        return [...new Set(forms.filter(f => f && f.length > 0))];
+    }
+
     displayStory(story, items) {
         let highlightedStory = story;
 
-        // Replace [[v:word]] markers with vocabulary highlighting
-        highlightedStory = highlightedStory.replace(
-            /\[\[v:([^\]]+)\]\]/g,
-            '<span class="highlight-vocab">$1</span>'
-        );
+        // Build a list of all forms to highlight with their type
+        const highlights = [];
 
-        // Replace [[k:word]] markers with kanji highlighting
-        highlightedStory = highlightedStory.replace(
-            /\[\[k:([^\]]+)\]\]/g,
-            '<span class="highlight-kanji">$1</span>'
-        );
+        items.forEach(item => {
+            const characters = item.data.characters || item.data.character || item.data.slug;
+            const type = item.object; // 'vocabulary', 'kanji', or 'radical'
 
-        // Replace [[r:word]] markers with radical highlighting (if used)
-        highlightedStory = highlightedStory.replace(
-            /\[\[r:([^\]]+)\]\]/g,
-            '<span class="highlight-radical">$1</span>'
-        );
+            if (type === 'vocabulary') {
+                // Get all verb/adjective forms for vocabulary
+                const forms = this.getVerbForms(characters);
+                console.log(`[Highlight] Vocab "${characters}" - generated ${forms.length} forms:`, forms);
+                forms.forEach(form => {
+                    highlights.push({ text: form, type: 'vocab', source: characters });
+                });
+            } else if (type === 'kanji') {
+                // For kanji, just highlight the single character wherever it appears
+                console.log(`[Highlight] Kanji "${characters}"`);
+                highlights.push({ text: characters, type: 'kanji', source: characters });
+            } else if (type === 'radical') {
+                highlights.push({ text: characters, type: 'radical', source: characters });
+            }
+        });
 
+        // Sort by length (longest first) to prevent partial matches
+        highlights.sort((a, b) => b.text.length - a.text.length);
+
+        // Use placeholder tokens to avoid double-highlighting
+        const placeholders = [];
+
+        highlights.forEach((highlight, index) => {
+            const placeholder = `\x00${index}\x00`; // Use null char as delimiter
+            const escapedText = highlight.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(escapedText, 'g');
+
+            if (highlightedStory.includes(highlight.text)) {
+                console.log(`[Highlight] MATCHED: "${highlight.text}" (from ${highlight.source})`);
+                highlightedStory = highlightedStory.replace(regex, placeholder);
+                placeholders.push({
+                    placeholder,
+                    text: highlight.text,
+                    type: highlight.type
+                });
+            }
+        });
+
+        // Replace placeholders with highlighted spans
+        placeholders.forEach(({ placeholder, text, type }) => {
+            const cssClass = type === 'vocab' ? 'highlight-vocab' :
+                            type === 'kanji' ? 'highlight-kanji' : 'highlight-radical';
+            highlightedStory = highlightedStory.split(placeholder).join(
+                `<span class="${cssClass}">${text}</span>`
+            );
+        });
+
+        console.log('[Highlight] Story text:', story);
+        console.log('[Highlight] Final highlighted:', highlightedStory);
         this.elements.storyText.innerHTML = highlightedStory;
     }
 
